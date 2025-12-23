@@ -1,675 +1,258 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Escape Coins</title>
+
 <style>
-  :root { --bg:#0f1115; --card:#171a21; --muted:#a8b0c0; --accent:#46b3ff; }
-  body { margin:0; font-family:Arial, sans-serif; background:var(--bg); color:#fff; }
-  .app { max-width:920px; margin:0 auto; padding:16px; }
-  .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-  .pill { background:#0b0d12; border:1px solid #262b36; padding:8px 10px; border-radius:999px; color:var(--muted); }
-  .btn { background:var(--card); border:1px solid #2a3140; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; }
-  .btn:hover { border-color:#3a4560; }
-  .btn.primary { background:linear-gradient(180deg,#1e90ff,#1367c7); border-color:#3c7fd1; }
-  .btn.danger { background:#2a1212; border-color:#5b2a2a; }
-  .grid { display:grid; grid-template-columns: 1fr; gap:14px; }
-  @media (min-width: 860px){ .grid { grid-template-columns: 1fr 320px; } }
-  .card { background:var(--card); border:1px solid #262b36; border-radius:18px; padding:14px; box-shadow:0 10px 25px rgba(0,0,0,.25); }
-  canvas { width:100%; height:auto; background:#111; border-radius:16px; border:1px solid #2a3140; touch-action:none; }
-  .muted { color:var(--muted); }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .hr { height:1px; background:#252a35; margin:12px 0; }
-  .list { display:flex; flex-direction:column; gap:10px; }
-  .item { display:flex; gap:10px; justify-content:space-between; align-items:center; padding:10px; border:1px solid #262b36; border-radius:14px; background:#12151c; }
-  .badge { font-size:12px; padding:4px 8px; border-radius:999px; background:#0b0d12; border:1px solid #262b36; color:var(--muted); }
-  .hidden { display:none !important; }
-  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b0d12; border:1px solid #262b36; padding:2px 6px; border-radius:8px; color:#cfd6e6; }
+body {
+  margin: 0;
+  background: #0f1115;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.hidden { display: none; }
+
+button {
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  background: #1e90ff;
+  color: white;
+}
+
+button:active { transform: scale(0.96); }
+
+#menu, #shop {
+  padding: 20px;
+}
+
+canvas {
+  background: #111;
+  border-radius: 14px;
+  display: block;
+  margin: 10px auto;
+}
+
+/* تحكم الموبايل */
+#mobileControls {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#mobileControls .row {
+  display: flex;
+  gap: 14px;
+}
+
+#mobileControls button {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+  border-radius: 50%;
+  background: #1e90ff;
+  opacity: 0.85;
+}
 </style>
 </head>
+
 <body>
-<div class="app">
 
-  <div class="topbar">
-    <div class="row">
-      <div class="pill">🎮 <b>Escape Coins</b></div>
-      <div class="pill">💰 العملات: <b id="walletCoins">0</b></div>
-      <div class="pill">🎨 السكن: <b id="skinName">افتراضي</b></div>
-      <div class="pill">🏁 المرحلة: <b id="stageName">1</b></div>
-    </div>
-    <div class="row">
-      <button class="btn" id="btnMenu">القائمة</button>
-      <button class="btn" id="btnShop">المتجر</button>
-      <button class="btn danger" id="btnReset">تصفير الحفظ</button>
-    </div>
-  </div>
+<!-- القائمة -->
+<div id="menu">
+  <h1>🎮 Escape Coins</h1>
+  <p>اجمع العملات واهرب من العدو</p>
+  <p>💰 عملاتك: <span id="wallet">0</span></p>
+  <button onclick="startGame()">ابدأ</button>
+  <button onclick="openShop()">المتجر</button>
+</div>
 
-  <div class="grid">
-    <div class="card">
-      <div id="screenMenu" class="list">
-        <h2 style="margin:0">القائمة الرئيسية</h2>
-        <div class="muted">تحرك بالأسهم <span class="kbd">← ↑ ↓ →</span> — اجمع العملات واهرب من العدو.</div>
-        <div class="hr"></div>
-        <div class="row">
-          <button class="btn primary" id="btnStart">ابدأ</button>
-          <button class="btn" id="btnContinue">تابع</button>
-          <button class="btn" id="btnHow">طريقة اللعب</button>
-        </div>
-        <div id="howBox" class="card hidden" style="background:#12151c;">
-          <div class="muted" style="line-height:1.7">
-            - هدفك تجمع أكبر عدد من العملات.<br>
-            - كل <b>10 نقاط</b> تدخل مرحلة جديدة بخلفية مختلفة ويزيد التحدّي.<br>
-            - إذا لمسَك العدو: تخسر الجولة، لكن <b>عملات المحفظة تبقى محفوظة</b>.<br>
-            - تقدر توقف/تكمل من زر الإيقاف أثناء اللعب.
-          </div>
-        </div>
-      </div>
+<!-- المتجر -->
+<div id="shop" class="hidden">
+  <h2>🛒 المتجر</h2>
+  <p>سكن أزرق (افتراضي)</p>
+  <p>سكن أخضر – السعر 30 💰</p>
+  <button onclick="buySkin()">شراء</button>
+  <br><br>
+  <button onclick="backToMenu()">رجوع</button>
+</div>
 
-      <div id="screenGame" class="hidden">
-        <canvas id="game" width="640" height="440"></canvas>
-        <div class="hr"></div>
-        <div class="row" style="justify-content:space-between">
-          <div class="row">
-            <span class="badge">النقاط: <b id="score">0</b></span>
-            <span class="badge">المرحلة: <b id="stageInGame">1</b></span>
-            <span class="badge">السرعة: <b id="diff">1.0x</b></span>
-          </div>
-          <div class="row">
-            <button class="btn primary" id="btnPause">إيقاف</button>
-            <button class="btn" id="btnQuit">خروج</button>
-          </div>
-        </div>
-        <div class="muted" style="margin-top:8px">ملاحظة: الأسهم هنا لا تحرك الصفحة.</div>
-      </div>
+<!-- اللعبة -->
+<div id="gameScreen" class="hidden">
+  <p>النقاط: <span id="score">0</span></p>
+  <canvas id="game" width="360" height="360"></canvas>
+  <button onclick="exitGame()">خروج</button>
+</div>
 
-      <div id="screenShop" class="hidden">
-        <h2 style="margin:0">🛒 المتجر</h2>
-        <div class="muted">اشتري سكنات باستخدام العملات الموجودة في محفظتك.</div>
-        <div class="hr"></div>
-        <div id="shopList" class="list"></div>
-        <div class="hr"></div>
-        <div class="row">
-          <button class="btn" id="btnBackFromShop">رجوع</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 style="margin-top:0">لوحة الحالة</h3>
-      <div class="list">
-        <div class="item">
-          <div>
-            <div><b>محفظتك</b></div>
-            <div class="muted">العملات محفوظة تلقائيًا</div>
-          </div>
-          <div class="badge">💰 <b id="walletCoins2">0</b></div>
-        </div>
-
-        <div class="item">
-          <div>
-            <div><b>أفضل نتيجة</b></div>
-            <div class="muted">أعلى نقاط بجولة واحدة</div>
-          </div>
-          <div class="badge">🏆 <b id="bestScore">0</b></div>
-        </div>
-
-        <div class="item">
-          <div>
-            <div><b>آخر نتيجة</b></div>
-            <div class="muted">آخر جولة لعبتها</div>
-          </div>
-          <div class="badge">🧾 <b id="lastScore">0</b></div>
-        </div>
-
-        <div class="item">
-          <div>
-            <div><b>مفتاح سريع</b></div>
-            <div class="muted">توقيف / تشغيل</div>
-          </div>
-          <div class="badge"><span class="kbd">Space</span></div>
-        </div>
-      </div>
-    </div>
+<!-- تحكم الهاتف -->
+<div id="mobileControls" class="hidden">
+  <button data-key="up">↑</button>
+  <div class="row">
+    <button data-key="left">←</button>
+    <button data-key="down">↓</button>
+    <button data-key="right">→</button>
   </div>
 </div>
 
 <script>
-/* =========================
-   حفظ البيانات (LocalStorage)
-========================= */
-const STORE_KEY = "escape_coins_save_v1";
-function loadSave(){
-  try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if(!raw) return null;
-    return JSON.parse(raw);
-  }catch{ return null; }
-}
-function saveNow(){
-  localStorage.setItem(STORE_KEY, JSON.stringify(SAVE));
-}
-function resetSave(){
-  localStorage.removeItem(STORE_KEY);
-}
+/* ====== حفظ ====== */
+let wallet = Number(localStorage.getItem("wallet")) || 0;
+let skin = localStorage.getItem("skin") || "blue";
+document.getElementById("wallet").textContent = wallet;
 
-let SAVE = loadSave() || {
-  walletCoins: 0,
-  ownedSkins: { "default": true },
-  equippedSkin: "default",
-  bestScore: 0,
-  lastScore: 0,
-  hasContinue: false,
-  continueState: null
-};
-
-const SKINS = [
-  { id:"default", name:"افتراضي", price:0, shape:"circle", color:"#46b3ff" },
-  { id:"emerald", name:"زمرد", price:40, shape:"circle", color:"#23d18b" },
-  { id:"golden",  name:"ذهبي",  price:80, shape:"circle", color:"#ffd166" },
-  { id:"shadow",  name:"ظل",    price:140, shape:"circle", color:"#b6b6ff" },
-  { id:"pixel",   name:"بيكسل", price:220, shape:"square", color:"#ff5c8a" },
-];
-
-const STAGES = [
-  { id:1, name:"1", bgType:"grid" },
-  { id:2, name:"2", bgType:"stars" },
-  { id:3, name:"3", bgType:"waves" },
-  { id:4, name:"4", bgType:"sand" },
-  { id:5, name:"5", bgType:"matrix" },
-];
-
-/* =========================
-   واجهة
-========================= */
-const el = (id)=>document.getElementById(id);
-const screens = {
-  menu: el("screenMenu"),
-  game: el("screenGame"),
-  shop: el("screenShop"),
-};
-function showScreen(name){
-  for(const k of Object.keys(screens)) screens[k].classList.add("hidden");
-  screens[name].classList.remove("hidden");
-}
-
-function refreshHUD(){
-  el("walletCoins").textContent = SAVE.walletCoins;
-  el("walletCoins2").textContent = SAVE.walletCoins;
-  el("bestScore").textContent = SAVE.bestScore;
-  el("lastScore").textContent = SAVE.lastScore;
-  const skin = SKINS.find(s=>s.id===SAVE.equippedSkin) || SKINS[0];
-  el("skinName").textContent = skin.name;
-  el("btnContinue").disabled = !SAVE.hasContinue;
-  el("btnContinue").style.opacity = SAVE.hasContinue ? "1" : ".5";
-  saveNow();
-}
-
-/* =========================
-   المتجر
-========================= */
-function renderShop(){
-  const box = el("shopList");
-  box.innerHTML = "";
-  SKINS.forEach(s=>{
-    const owned = !!SAVE.ownedSkins[s.id];
-    const equipped = SAVE.equippedSkin === s.id;
-
-    const row = document.createElement("div");
-    row.className = "item";
-
-    const left = document.createElement("div");
-    left.innerHTML = `<div><b>${s.name}</b> <span class="badge">${s.shape==="circle"?"دائرة":"مربع"}</span></div>
-                      <div class="muted">السعر: ${s.price} 💰</div>`;
-
-    const right = document.createElement("div");
-    const btn = document.createElement("button");
-    btn.className = "btn";
-    if(equipped){
-      btn.textContent = "مُجهّز ✅";
-      btn.disabled = true;
-      btn.style.opacity = ".7";
-    }else if(owned){
-      btn.textContent = "تجهيز";
-      btn.onclick = ()=>{
-        SAVE.equippedSkin = s.id;
-        refreshHUD();
-        renderShop();
-      };
-    }else{
-      btn.textContent = "شراء";
-      btn.onclick = ()=>{
-        if(SAVE.walletCoins < s.price){
-          alert("💸 ما عندك عملات كافية.");
-          return;
-        }
-        SAVE.walletCoins -= s.price;
-        SAVE.ownedSkins[s.id] = true;
-        SAVE.equippedSkin = s.id;
-        refreshHUD();
-        renderShop();
-      };
-    }
-
-    right.appendChild(btn);
-    row.appendChild(left);
-    row.appendChild(right);
-    box.appendChild(row);
-  });
-}
-
-/* =========================
-   اللعبة
-========================= */
-const canvas = el("game");
+/* ====== عناصر ====== */
+const menu = document.getElementById("menu");
+const shop = document.getElementById("shop");
+const gameScreen = document.getElementById("gameScreen");
+const mobileControls = document.getElementById("mobileControls");
+const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const W = canvas.width, H = canvas.height;
+const scoreEl = document.getElementById("score");
 
-let running = false;
-let paused = false;
-let rafId = null;
+/* ====== تحكم ====== */
+const keys = { up:false, down:false, left:false, right:false };
 
-let state = null; // current run state
-
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-function rnd(min,max){ return Math.random()*(max-min)+min; }
-
-const keys = {};
-function preventScrollKeys(e){
-  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)){
-    e.preventDefault();
-  }
-}
-document.addEventListener("keydown", (e)=>{
-  preventScrollKeys(e);
-  keys[e.key] = true;
-  if(e.key === " " && screens.game.classList.contains("hidden")===false){
-    togglePause();
-  }
-});
-document.addEventListener("keyup", (e)=>{
-  preventScrollKeys(e);
-  keys[e.key] = false;
+document.addEventListener("keydown", e => {
+  if(e.key === "ArrowUp") keys.up = true;
+  if(e.key === "ArrowDown") keys.down = true;
+  if(e.key === "ArrowLeft") keys.left = true;
+  if(e.key === "ArrowRight") keys.right = true;
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
 });
 
-function stageFromScore(score){
-  // كل 10 نقاط مرحلة جديدة
-  const idx = Math.min(Math.floor(score / 10), STAGES.length - 1);
-  return STAGES[idx];
+document.addEventListener("keyup", e => {
+  if(e.key === "ArrowUp") keys.up = false;
+  if(e.key === "ArrowDown") keys.down = false;
+  if(e.key === "ArrowLeft") keys.left = false;
+  if(e.key === "ArrowRight") keys.right = false;
+});
+
+/* لمس */
+document.querySelectorAll("#mobileControls button").forEach(btn=>{
+  const k = btn.dataset.key;
+  btn.addEventListener("touchstart",e=>{ e.preventDefault(); keys[k]=true; });
+  btn.addEventListener("touchend",e=>{ e.preventDefault(); keys[k]=false; });
+});
+
+/* ====== اللعبة ====== */
+let player, enemy, coin, score, running=false;
+
+function resetGame(){
+  player = {x:180,y:180,r:10,speed:3};
+  enemy  = {x:40,y:40,s:14,speed:1.2};
+  coin   = {x:100,y:100,r:6};
+  score = 0;
+  scoreEl.textContent = 0;
 }
-function difficultyMultiplier(score){
-  // صعوبة تزيد تدريجيًا: من 1.0 إلى ~2.3
-  return Math.min(1.0 + score * 0.03, 2.3);
+
+function startGame(){
+  menu.classList.add("hidden");
+  shop.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+  mobileControls.classList.remove("hidden");
+  resetGame();
+  running = true;
+  loop();
+}
+
+function exitGame(){
+  running = false;
+  gameScreen.classList.add("hidden");
+  mobileControls.classList.add("hidden");
+  menu.classList.remove("hidden");
+  document.getElementById("wallet").textContent = wallet;
+}
+
+function openShop(){
+  menu.classList.add("hidden");
+  shop.classList.remove("hidden");
+}
+
+function backToMenu(){
+  shop.classList.add("hidden");
+  menu.classList.remove("hidden");
+}
+
+function buySkin(){
+  if(wallet < 30){ alert("ما عندك عملات كافية"); return; }
+  wallet -= 30;
+  skin = "green";
+  localStorage.setItem("wallet",wallet);
+  localStorage.setItem("skin",skin);
+  alert("تم شراء السكن الأخضر");
 }
 
 function newCoin(){
-  state.coin.x = rnd(18, W-18);
-  state.coin.y = rnd(18, H-18);
+  coin.x = Math.random()*340+10;
+  coin.y = Math.random()*340+10;
 }
 
-function resetRun(){
-  const skin = SKINS.find(s=>s.id===SAVE.equippedSkin) || SKINS[0];
-  state = {
-    score: 0,
-    stage: STAGES[0],
-    skin,
-    player: { x: W/2, y: H/2, r: (skin.shape==="circle"?10:10), speed: 3.6 },
-    enemy:  { x: 70, y: 70, s: 14, speed: 1.25 },
-    coin:   { x: 120, y: 120, r: 7 },
-  };
-  newCoin();
-  updateGameHUD();
+function collideCircle(a,b){
+  return Math.hypot(a.x-b.x,a.y-b.y) < a.r+b.r;
 }
 
-function updateGameHUD(){
-  el("score").textContent = state.score;
-  const st = stageFromScore(state.score);
-  state.stage = st;
-  el("stageInGame").textContent = st.id;
-  el("stageName").textContent = st.id;
-  const mult = difficultyMultiplier(state.score);
-  el("diff").textContent = mult.toFixed(1) + "x";
-}
-
-function movePlayer(){
-  let dx=0, dy=0;
-  if(keys["ArrowUp"]) dy -= 1;
-  if(keys["ArrowDown"]) dy += 1;
-  if(keys["ArrowLeft"]) dx -= 1;
-  if(keys["ArrowRight"]) dx += 1;
-
-  if(dx || dy){
-    const len = Math.hypot(dx,dy) || 1;
-    dx/=len; dy/=len;
-    state.player.x += dx * state.player.speed;
-    state.player.y += dy * state.player.speed;
-  }
-
-  // حدود الشاشة
-  if(state.skin.shape==="circle"){
-    state.player.x = clamp(state.player.x, state.player.r, W-state.player.r);
-    state.player.y = clamp(state.player.y, state.player.r, H-state.player.r);
-  }else{
-    const half = 10;
-    state.player.x = clamp(state.player.x, half, W-half);
-    state.player.y = clamp(state.player.y, half, H-half);
-  }
-}
-
-function moveEnemy(){
-  const mult = difficultyMultiplier(state.score);
-  const sp = state.enemy.speed * mult;
-
-  // يتبع اللاعب
-  const vx = Math.sign(state.player.x - state.enemy.x);
-  const vy = Math.sign(state.player.y - state.enemy.y);
-  state.enemy.x += sp * vx;
-  state.enemy.y += sp * vy;
-
-  state.enemy.x = clamp(state.enemy.x, 0, W - state.enemy.s);
-  state.enemy.y = clamp(state.enemy.y, 0, H - state.enemy.s);
-}
-
-function hitCircleCircle(ax, ay, ar, bx, by, br){
-  return Math.hypot(ax - bx, ay - by) <= (ar + br);
-}
-function hitCircleRect(cx, cy, cr, rx, ry, rs){
-  const px = clamp(cx, rx, rx + rs);
-  const py = clamp(cy, ry, ry + rs);
-  return Math.hypot(cx - px, cy - py) <= cr;
-}
-function hitRectRect(ax,ay,as,bx,by,bs){
-  return ax < bx+bs && ax+as > bx && ay < by+bs && ay+as > by;
-}
-
-function drawBackground(stage){
-  // خلفيات بسيطة حسب المرحلة (خفيفة على الجهاز)
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = "#0e1015";
-  ctx.fillRect(0,0,W,H);
-
-  if(stage.bgType==="grid"){
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
-    for(let x=0;x<=W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-    for(let y=0;y<=H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  }else if(stage.bgType==="stars"){
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    for(let i=0;i<120;i++){
-      const x = (i*37)%W, y = (i*91)%H;
-      ctx.fillRect(x,y,1,1);
-    }
-  }else if(stage.bgType==="waves"){
-    ctx.strokeStyle = "rgba(70,179,255,0.10)";
-    for(let y=20;y<H;y+=26){
-      ctx.beginPath();
-      for(let x=0;x<=W;x+=16){
-        const yy = y + Math.sin((x+y)*0.03)*6;
-        if(x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
-      }
-      ctx.stroke();
-    }
-  }else if(stage.bgType==="sand"){
-    ctx.fillStyle = "rgba(255,209,102,0.06)";
-    for(let i=0;i<220;i++){
-      const x=(i*53)%W, y=(i*29)%H;
-      ctx.fillRect(x,y,2,1);
-    }
-  }else if(stage.bgType==="matrix"){
-    ctx.fillStyle = "rgba(35,209,139,0.08)";
-    for(let x=10;x<W;x+=18){
-      const h = ((x*13)%120)+40;
-      ctx.fillRect(x, (x*7)%H, 2, h);
-    }
-  }
-}
-
-function draw(){
-  drawBackground(state.stage);
-
-  // coin
-  ctx.fillStyle = "lime";
-  ctx.beginPath();
-  ctx.arc(state.coin.x, state.coin.y, state.coin.r, 0, Math.PI*2);
-  ctx.fill();
-
-  // enemy
-  ctx.fillStyle = "red";
-  ctx.fillRect(state.enemy.x, state.enemy.y, state.enemy.s, state.enemy.s);
-
-  // player (skin)
-  ctx.fillStyle = state.skin.color;
-  if(state.skin.shape==="circle"){
-    ctx.beginPath();
-    ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2);
-    ctx.fill();
-  }else{
-    const s = 20;
-    ctx.fillRect(state.player.x - s/2, state.player.y - s/2, s, s);
-  }
-
-  if(paused){
-    ctx.fillStyle="rgba(0,0,0,0.45)";
-    ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="#fff";
-    ctx.font="24px Arial";
-    ctx.textAlign="center";
-    ctx.fillText("⏸ متوقف", W/2, H/2);
-    ctx.font="14px Arial";
-    ctx.fillStyle="rgba(255,255,255,0.85)";
-    ctx.fillText("اضغط Space أو زر (استئناف)", W/2, H/2 + 28);
-    ctx.textAlign="start";
-  }
-}
-
-function onCollect(){
-  state.score += 1;
-
-  // كل عملة = تزيد محفظتك 1
-  SAVE.walletCoins += 1;
-
-  // تحديث المرحلة والصعوبة
-  updateGameHUD();
-  refreshHUD();
-
-  // مكافأة صغيرة كل 10 نقاط (اختياري): +2 عملات
-  if(state.score % 10 === 0){
-    SAVE.walletCoins += 2;
-    refreshHUD();
-  }
-
-  newCoin();
-
-  // حفظ “تابع”
-  SAVE.hasContinue = true;
-  SAVE.continueState = packContinue();
-  saveNow();
-}
-
-function onLose(){
-  running = false;
-  paused = false;
-  if(rafId) cancelAnimationFrame(rafId);
-  rafId = null;
-
-  SAVE.lastScore = state.score;
-  if(state.score > SAVE.bestScore) SAVE.bestScore = state.score;
-
-  // ما نمسح المحفظة. بس نمسح “تابع” لأن الجولة انتهت
-  SAVE.hasContinue = false;
-  SAVE.continueState = null;
-  saveNow();
-  refreshHUD();
-
-  alert("💀 خسرت! نقاطك: " + state.score + "\n💰 عملاتك بالمحفظة: " + SAVE.walletCoins);
-  showScreen("menu");
-}
-
-function packContinue(){
-  // خفيف: نخزن أشياء أساسية
-  return {
-    score: state.score,
-    player: { x: state.player.x, y: state.player.y },
-    enemy: { x: state.enemy.x, y: state.enemy.y },
-    coin:  { x: state.coin.x,  y: state.coin.y },
-    equippedSkin: SAVE.equippedSkin
-  };
-}
-function loadContinue(cont){
-  const skin = SKINS.find(s=>s.id===cont.equippedSkin) || SKINS[0];
-  state = {
-    score: cont.score || 0,
-    stage: stageFromScore(cont.score || 0),
-    skin,
-    player: { x: cont.player.x, y: cont.player.y, r: (skin.shape==="circle"?10:10), speed: 3.6 },
-    enemy:  { x: cont.enemy.x,  y: cont.enemy.y,  s: 14, speed: 1.25 },
-    coin:   { x: cont.coin.x,   y: cont.coin.y,   r: 7 },
-  };
-  updateGameHUD();
-}
-
-function checkCollisions(){
-  // coin collision
-  if(state.skin.shape==="circle"){
-    if(hitCircleCircle(state.player.x, state.player.y, state.player.r, state.coin.x, state.coin.y, state.coin.r)){
-      onCollect();
-    }
-    // enemy collision
-    if(hitCircleRect(state.player.x, state.player.y, state.player.r, state.enemy.x, state.enemy.y, state.enemy.s)){
-      onLose();
-      return;
-    }
-  }else{
-    // player is square centered
-    const ps = 20;
-    const px = state.player.x - ps/2, py = state.player.y - ps/2;
-
-    // coin vs square: تقريب بسيط
-    if(hitCircleRect(state.coin.x, state.coin.y, state.coin.r, px, py, ps)){
-      onCollect();
-    }
-    // enemy square vs player square
-    if(hitRectRect(px, py, ps, state.enemy.x, state.enemy.y, state.enemy.s)){
-      onLose();
-      return;
-    }
-  }
+function collideEnemy(){
+  return Math.abs(player.x-enemy.x)<14 && Math.abs(player.y-enemy.y)<14;
 }
 
 function loop(){
   if(!running) return;
 
-  if(!paused){
-    movePlayer();
-    moveEnemy();
-    checkCollisions();
-    // تحديث المرحلة كل فريم حسب النقاط
-    state.stage = stageFromScore(state.score);
+  if(keys.up) player.y -= player.speed;
+  if(keys.down) player.y += player.speed;
+  if(keys.left) player.x -= player.speed;
+  if(keys.right) player.x += player.speed;
+
+  player.x = Math.max(10,Math.min(350,player.x));
+  player.y = Math.max(10,Math.min(350,player.y));
+
+  enemy.x += enemy.speed*Math.sign(player.x-enemy.x);
+  enemy.y += enemy.speed*Math.sign(player.y-enemy.y);
+
+  if(collideCircle(player,coin)){
+    score++;
+    wallet++;
+    enemy.speed += 0.05;
+    scoreEl.textContent = score;
+    localStorage.setItem("wallet",wallet);
+    newCoin();
   }
 
-  draw();
-  rafId = requestAnimationFrame(loop);
-}
-
-function startNewGame(){
-  resetRun();
-  running = true;
-  paused = false;
-  SAVE.hasContinue = true;
-  SAVE.continueState = packContinue();
-  saveNow();
-  showScreen("game");
-  el("btnPause").textContent = "إيقاف";
-  loop();
-}
-
-function togglePause(){
-  if(!running) return;
-  paused = !paused;
-  el("btnPause").textContent = paused ? "استئناف" : "إيقاف";
-}
-
-function continueGame(){
-  if(!SAVE.hasContinue || !SAVE.continueState) return;
-  // تأكد السكن متوافق
-  SAVE.equippedSkin = SAVE.continueState.equippedSkin || SAVE.equippedSkin;
-  refreshHUD();
-  loadContinue(SAVE.continueState);
-  running = true;
-  paused = false;
-  showScreen("game");
-  el("btnPause").textContent = "إيقاف";
-  loop();
-}
-
-/* =========================
-   أزرار
-========================= */
-el("btnStart").onclick = startNewGame;
-el("btnContinue").onclick = continueGame;
-
-el("btnHow").onclick = ()=>{
-  el("howBox").classList.toggle("hidden");
-};
-
-el("btnPause").onclick = ()=> togglePause();
-
-el("btnQuit").onclick = ()=>{
-  // حفظ “تابع” قبل الخروج
-  SAVE.hasContinue = true;
-  SAVE.continueState = packContinue();
-  saveNow();
-  refreshHUD();
-  running = false;
-  paused = false;
-  if(rafId) cancelAnimationFrame(rafId);
-  rafId = null;
-  showScreen("menu");
-};
-
-el("btnMenu").onclick = ()=>{
-  // لو كنت داخل اللعبة، نطلع للقائمة ونحفظ
-  if(!screens.game.classList.contains("hidden") && running){
-    SAVE.hasContinue = true;
-    SAVE.continueState = packContinue();
-    saveNow();
+  if(collideEnemy()){
+    alert("💀 خسرت! نقاطك: "+score);
+    exitGame();
+    return;
   }
-  refreshHUD();
-  showScreen("menu");
-};
 
-el("btnShop").onclick = ()=>{
-  renderShop();
-  showScreen("shop");
-};
+  ctx.clearRect(0,0,360,360);
 
-el("btnBackFromShop").onclick = ()=>{
-  showScreen("menu");
-};
+  ctx.fillStyle="lime";
+  ctx.beginPath();
+  ctx.arc(coin.x,coin.y,coin.r,0,Math.PI*2);
+  ctx.fill();
 
-el("btnReset").onclick = ()=>{
-  if(confirm("أكيد تبغى تصفير كل الحفظ؟ (العملات + السكنات + الأرقام)")){
-    resetSave();
-    SAVE = {
-      walletCoins: 0,
-      ownedSkins: { "default": true },
-      equippedSkin: "default",
-      bestScore: 0,
-      lastScore: 0,
-      hasContinue: false,
-      continueState: null
-    };
-    refreshHUD();
-    renderShop();
-    showScreen("menu");
-  }
-};
+  ctx.fillStyle="red";
+  ctx.fillRect(enemy.x,enemy.y,14,14);
 
-/* =========================
-   تشغيل أولي
-========================= */
-refreshHUD();
-renderShop();
-showScreen("menu");
+  ctx.fillStyle = skin==="green" ? "lime" : "deepskyblue";
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+  ctx.fill();
+
+  requestAnimationFrame(loop);
+}
 </script>
+
 </body>
 </html>
